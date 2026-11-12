@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>工享提升礼 · 登记汇总</title>
+<style>
+  :root{--red:#8e1220;--line:#e6d6b8;--ink:#3f2d1e}
+  *{box-sizing:border-box}
+  body{margin:0;padding:20px;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;color:var(--ink);background:#faf6ee}
+  .wrap{max-width:1150px;margin:0 auto}
+  h1{margin:0 0 4px;font-size:20px;color:var(--red)}
+  .sub{margin:0 0 16px;font-size:13px;color:#8a7256}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  button{padding:9px 18px;font:inherit;font-size:14px;font-weight:600;color:#fff;border:0;border-radius:8px;background:var(--red);cursor:pointer}
+  button.ghost{color:var(--red);background:#fff;border:1px solid var(--line)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .card{flex:1;min-width:150px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .card .n{font-size:24px;font-weight:700;color:var(--red);line-height:1.2}
+  .card .t{font-size:12px;color:#8a7256;margin-top:4px}
+  table{width:100%;border-collapse:collapse;background:#fff;font-size:13px;box-shadow:0 1px 3px rgba(120,90,40,.08)}
+  th,td{padding:9px 10px;border-bottom:1px solid #f0e6d4;text-align:left;white-space:nowrap}
+  th{background:#fbf3e3;color:#7a5a34;font-weight:600;position:sticky;top:0;z-index:1}
+  td.num{font-weight:700;color:var(--red)}
+  .scroll{overflow:auto;max-height:62vh;border:1px solid var(--line);border-radius:10px}
+  .err{color:#c0342c;font-size:13px;margin:8px 0}
+  .hint{margin-top:20px;font-size:12px;line-height:1.9;color:#8a7256;background:#fff;padding:14px 16px;border:1px solid var(--line);border-radius:8px}
+  .empty{padding:40px;text-align:center;color:#a08a6a;font-size:14px}
+  .key{width:280px;padding:9px 12px;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px}
+  code{background:#f3ece0;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>工享提升礼 · 登记汇总</h1>
+  <p class="sub">数据实时读取自腾讯云开发数据库，打开即自动加载。</p>
+
+  <div class="bar">
+    <button id="load">刷新数据</button>
+    <button id="csv" class="ghost" disabled>导出 CSV</button>
+    <span id="stamp" style="font-size:12px;color:#8a7256"></span>
+  </div>
+
+  <div class="cards">
+    <div class="card"><div class="n" id="cCount">—</div><div class="t">登记总数</div></div>
+    <div class="card"><div class="n" id="cTotal">—</div><div class="t">预约提升合计（万元）</div></div>
+    <div class="card"><div class="n" id="cAvg">—</div><div class="t">户均（万元）</div></div>
+    <div class="card"><div class="n" id="cToday">—</div><div class="t">今日新增</div></div>
+  </div>
+
+  <p class="err" id="err"></p>
+
+  <div class="scroll">
+    <table id="tbl">
+      <thead><tr><th>#</th><th>提交时间</th><th>心愿完成时间</th><th>预约提升金额（万元）</th><th>邀请员工编号</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>暂无登记数据</div>
+  </div>
+
+  <div class="hint">
+    <b>数据来源</b><br>腾讯云开发 PostgreSQL 表 <code>wish_registration</code>，打开即自动加载，可导出 Excel。<br><br>
+    可随时在 GitHub 上查看原始记录，或点「导出 CSV」下载。
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   工享提升礼 · 配置
+   —— 只改这个文件就能改活动信息、金额档位和提交去向
+   ============================================================ */
+window.LIYU_CONFIG = {
+
+  /* 品牌与标题 */
+  brand:    '中国工商银行',
+  org:      '中国工商银行',
+  title:    '工享提升礼',
+  sealTop:  '工享',
+  sealBottom:'心愿',
+
+  /* 活动时间（YYYY-MM-DD） */
+  signupStart: '2026-11-01',
+  signupEnd:   '2026-12-02',
+  raiseStart:  '2026-12-03',
+  raiseEnd:    '2027-03-31',
+
+  /* 金额规则（单位：万元） */
+  amountUnit: '万元',
+  amountMin:  1,        // 最小 1 万元
+  amountMax:  100000,   // 上限，防误填（100000 万元 = 10 亿）
+  presets:    [10, 50, 100, 300],
+
+  /* 奖励 */
+  prizePoint: 10200,
+
+  /* 提交去向
+     'cloudbase' = 提交到腾讯云开发 CloudBase（国内 0.2s，推荐）
+     'github'    = 提交到 GitHub Issues
+     'local'     = 只存本机浏览器
+     无论哪种模式，都会同时在本机留档一份，绝不丢数据              */
+  mode: 'gateway',
+
+  /* 腾讯云开发配置
+     这些值都是「前端公开凭证」，CloudBase 设计上就允许放在网页里。
+     真正的安全边界是数据库的 RLS 策略：本表只开放「插入」，不开放「读取」。 */
+  /* 中转网关（云函数），前端不持有任何密钥 */
+  gateway: 'https://wealth-wish-demo-d2e0b525d4b1cd8-1528378641.ap-shanghai.app.tcloudbase.com/submit',
+
+  cloudbase: {
+    envId: 'wealth-wish-demo-d2e0b525d4b1cd8',
+    publishableKey: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjIxODZmM2NlLTNiNTYtNDI0Ni1iYjQ3LTZmN2QxYmZiYThmNyJ9.eyJpc3MiOiJodHRwczovL3dlYWx0aC13aXNoLWRlbW8tZDJlMGI1MjVkNGIxY2Q4LmFwLXNoYW5naGFpLnRjYi1hcGkudGVuY2VudGNsb3VkYXBpLmNvbSIsInN1YiI6ImFub24iLCJhdWQiOiJ3ZWFsdGgtd2lzaC1kZW1vLWQyZTBiNTI1ZDRiMWNkOCIsImV4cCI6NDA5NzkwMDIxNCwiaWF0IjoxNzk0MjE3MDE0LCJub25jZSI6IkVuekRJVHg2U1lXQ1F2cFM1SDJPd0EiLCJhdF9oYXNoIjoiRW56RElUeDZTWVdDUXZwUzVIMk93QSIsIm5hbWUiOiJBbm9ueW1vdXMiLCJzY29wZSI6ImFub255bW91cyIsInByb2plY3RfaWQiOiJ3ZWFsdGgtd2lzaC1kZW1vLWQyZTBiNTI1ZDRiMWNkOCIsIm1ldGEiOnsicGxhdGZvcm0iOiJQdWJsaXNoYWJsZUtleSJ9LCJyb2xlIjoiYW5vbiIsImlzX2Fub255bW91cyI6dHJ1ZSwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiYW5vbnltb3VzIiwicHJvdmlkZXJzIjpbImFub255bW91cyJdfSwidXNlcl9tZXRhZGF0YSI6eyJuYW1lIjoiQW5vbnltb3VzIn0sInVzZXJfdHlwZSI6IiIsImNsaWVudF90eXBlIjoiY2xpZW50X3VzZXIiLCJpc19zeXN0ZW1fYWRtaW4iOmZhbHNlfQ.R1wE--lTm3GRTO_e2ZjRyFsZKhnO9Tw1LWa0hrhVePMtc8b8I_pQj2dx1iltx_UxhWBy3QWA15MNrBDItgcD0zttW4MBpZtYTIRPJsVPFGYz800DB9cS1GUrDdQwkFMUF6BtrjP7Lp4R2PHRF2iVSBk-uAGgL-gQp6aoE6jZ5GEKK4kplyiroCUOwQAYjNF_dYv9Xn63j-mfjnJZX2yLHwFemmeiEuGiQM8u6xkG6xxJwPm4_cXZA28IcNYSfI6FWzhT0bO0qpDXj6zI51fxqf1fPXPlBIdkvh8tgnSJ-1XeuJLxKL4SxKX54Iyh9VA1wxgjC3nImdi90_jMao7bBg',
+    table: 'wish_registration'
+  },
+
+  /* GitHub 接收端（备用，mode:'github' 时生效） */
+  github: {
+    repo: 'IVseIce/icbc-liyu',
+    token: '',
+    labels: ['登记']
+  },
+
+  endpoint: '',
+  /* 本地留档：true 表示无论提交到哪儿，都在手机本地也存一份，断网/接口挂掉不丢数据 */
+  localBackup: true,
+  /* 联网失败时是否仍然显示"提交成功"（数据已本地留档，不会丢）。
+     上线后如希望用户看到失败提示，改成 false */
+  offlineFallback: true,
+  keepLocal: 500,
+
+  /* 常用日期的生成：从报名截止日往前推 n 天 */
+  dateOptionCount: 8,
+
+  /* 联系方式（客服浮标） */
+  serviceTel: '95588',
+
+  /* 活动规则（富文本结构，渲染为分节文字） */
+  rules: [
+    {
+      h: '一、活动时间',
+      p: [
+        '预约报名：2026年11月1日00:00至2026年12月2日23:59。',
+        '资产提升：2026年12月3日至2027年3月31日。'
+      ]
+    },
+    {
+      h: '二、参与对象',
+      p: [
+        '在中国工商银行开立个人结算账户、且已注册手机银行的个人客户。',
+        '同一客户在本活动中仅可提交一次心愿登记，重复提交以最后一次为准。'
+      ]
+    },
+    {
+      h: '三、如何参与',
+      p: [
+        '1. 在预约报名期内，于本页面填写「心愿完成时间」与「预约提升金额」，点击「提交心愿」即完成报名。',
+        '2. 报名成功后，请在资产提升期内将名下金融资产（存款、理财、基金、保险等，具体口径以我行系统统计为准）提升至预约金额以上。',
+        '3. 提升金额按资产提升期内月日均金融资产较报名基期月日均的增量计算。'
+      ]
+    },
+    {
+      h: '四、奖励标准',
+      p: [
+        '成功预约并实际达成资产提升的客户，按提升金额对应档位发放「财富点」奖励，至高可得 10200 财富点。'
+      ],
+      table: {
+        head: ['预约提升金额（万元）', '财富点'],
+        rows: [
+          ['1（含）—10', '500'],
+          ['10（含）—50', '2000'],
+          ['50（含）—100', '5000'],
+          ['100 及以上', '10200']
+        ]
+      },
+      note: '档位与点数以最终印发方案为准。'
+    },
+    {
+      h: '五、奖励发放',
+      p: [
+        '达标客户的财富点于资产提升期结束后次月起，分批次发放至客户名下账户，可在手机银行「我的—财富点」查询。',
+        '如客户在活动期间销户、账户状态异常或存在套现、拆单等违规行为，我行有权取消其参与资格并追回已发放奖励。'
+      ]
+    },
+    {
+      h: '六、其他',
+      p: [
+        '客户在本页面填写的信息仅用于本次活动预约报名与奖励发放，我行将依法依规保护客户信息安全。',
+        '本活动由' + '中国工商银行' + '承办，如有疑问请致电 95588 或联系您的客户经理。',
+        '本活动最终解释权归中国工商银行所有；如遇不可抗力，我行有权调整活动安排并另行公告。'
+      ]
+    }
+  ]
+};
+
+</script>
+<script>
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var C = (window.LIYU_CONFIG && window.LIYU_CONFIG.cloudbase) || {};
+  var rows = [];
+
+  function fmt(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return iso || '';
+    var p = function (n) { return n < 10 ? '0' + n : n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+      ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function render() {
+    var tb = $('#tbl tbody');
+    if (!rows.length) {
+      tb.innerHTML = '';
+      $('#empty').hidden = false;
+    } else {
+      $('#empty').hidden = true;
+      tb.innerHTML = rows.map(function (r, i) {
+        return '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td>' + fmt(r.submitted_at) + '</td>' +
+          '<td>' + (r.target_date || '') + '</td>' +
+          '<td class="num">' + (r.amount_wanyuan != null ? r.amount_wanyuan : '') + '</td>' +
+          '<td>' + (r.employee || '—') + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+    var total = rows.reduce(function (a, b) { return a + Number(b.amount_wanyuan || 0); }, 0);
+    var today = new Date().toDateString();
+    var todayCount = rows.filter(function (r) {
+      return new Date(r.submitted_at).toDateString() === today;
+    }).length;
+    $('#cCount').textContent = rows.length;
+    $('#cTotal').textContent = total.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+    $('#cAvg').textContent = rows.length ? (total / rows.length).toFixed(1) : '—';
+    $('#cToday').textContent = todayCount;
+    $('#csv').disabled = !rows.length;
+    $('#stamp').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  }
+
+  var REPO = (window.LIYU_CONFIG && window.LIYU_CONFIG.github && window.LIYU_CONFIG.github.repo) || 'IVseIce/icbc-liyu';
+
+  function parseIssue(issue) {
+    var body = issue.body || '';
+    var get = function (label) {
+      var m = new RegExp('\\*\\*' + label + '\\*\\*[:：]\\s*(.+)').exec(body);
+      return m ? m[1].trim() : '';
+    };
+    var raw = get('预约提升金额');
+    return {
+      number: issue.number,
+      url: issue.html_url,
+      submitted_at: issue.created_at,
+      target_date: get('心愿完成时间') || '',
+      amount_wanyuan: parseFloat(String(raw).replace(/[^\d.]/g, '')) || 0,
+      employee: get('邀请员工编号') || ''
+    };
+  }
+
+  var GW = (window.LIYU_CONFIG && window.LIYU_CONFIG.gateway) || '';
+  var RECORDS_URL = GW.replace(/\/submit\/?$/, '/records');
+
+  function load() {
+    $('#err').textContent = '';
+    $('#load').disabled = true;
+    $('#load').textContent = '读取中…';
+
+    return fetch(RECORDS_URL)
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (!Array.isArray(data)) throw new Error('返回格式异常');
+        rows = data;
+        render();
+      })
+      .catch(function (e) { $('#err').textContent = '读取失败：' + e.message; })
+      .then(function () {
+        $('#load').disabled = false;
+        $('#load').textContent = '刷新数据';
+      });
+  }
+
+  function fmt(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return iso || '';
+    var p = function (n) { return n < 10 ? '0' + n : n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+      ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function render() {
+    var tb = $('#tbl tbody');
+    if (!rows.length) {
+      tb.innerHTML = '';
+      $('#empty').hidden = false;
+    } else {
+      $('#empty').hidden = true;
+      tb.innerHTML = rows.map(function (r, i) {
+        return '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td>' + fmt(r.submitted_at) + '</td>' +
+          '<td>' + (r.target_date || '') + '</td>' +
+          '<td class="num">' + (r.amount_wanyuan != null ? r.amount_wanyuan : '') + '</td>' +
+          '<td>' + (r.employee || '—') + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+    var total = rows.reduce(function (a, b) { return a + Number(b.amount_wanyuan || 0); }, 0);
+    var today = new Date().toDateString();
+    var todayCount = rows.filter(function (r) {
+      return new Date(r.submitted_at).toDateString() === today;
+    }).length;
+    $('#cCount').textContent = rows.length;
+    $('#cTotal').textContent = total.toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+    $('#cAvg').textContent = rows.length ? (total / rows.length).toFixed(1) : '—';
+    $('#cToday').textContent = todayCount;
+    $('#csv').disabled = !rows.length;
+    $('#stamp').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  }
+
+  var REPO = (window.LIYU_CONFIG && window.LIYU_CONFIG.github && window.LIYU_CONFIG.github.repo) || 'IVseIce/icbc-liyu';
+
+  function parseIssue(issue) {
+    var body = issue.body || '';
+    var get = function (label) {
+      var m = new RegExp('\\*\\*' + label + '\\*\\*[:：]\\s*(.+)').exec(body);
+      return m ? m[1].trim() : '';
+    };
+    var raw = get('预约提升金额');
+    return {
+      number: issue.number,
+      url: issue.html_url,
+      submitted_at: issue.created_at,
+      target_date: get('心愿完成时间') || '',
+      amount_wanyuan: parseFloat(String(raw).replace(/[^\d.]/g, '')) || 0,
+      employee: get('邀请员工编号') || ''
+    };
+  }
+
+  $('#load').addEventListener('click', load);
+
+  $('#csv').addEventListener('click', function () {
+    var head = ['序号', '提交时间', '心愿完成时间', '预约提升金额(万元)', '邀请员工编号'];
+    var data = rows.map(function (r, i) {
+      return [i + 1, fmt(r.submitted_at), r.target_date, r.amount_wanyuan, r.employee || ''];
+    });
+    var csv = '\ufeff' + [head].concat(data).map(function (r) {
+      return r.map(function (c) {
+        var s = String(c == null ? '' : c);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(',');
+    }).join('\r\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '工享提升礼登记汇总-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
