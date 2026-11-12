@@ -30,9 +30,56 @@
   .empty{padding:40px;text-align:center;color:#a08a6a;font-size:14px}
   .key{width:280px;padding:9px 12px;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px}
   code{background:#f3ece0;padding:1px 5px;border-radius:4px}
+
+  /* 口令登录层 */
+  .lock{
+    position:fixed; inset:0; z-index:99;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(160deg,#7d0d18,#5d0a12);
+    padding:20px;
+  }
+  .lock[hidden]{display:none}
+  .lock-box{
+    width:100%; max-width:340px;
+    background:#fffdf7;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:28px 24px 22px;
+    text-align:center;
+    box-shadow:0 18px 50px rgba(0,0,0,.35);
+  }
+  .lock-box h2{
+    margin:0 0 6px; font-size:18px; letter-spacing:.1em; color:var(--red);
+  }
+  .lock-box p{margin:0 0 18px; font-size:12.5px; color:#8a7256; line-height:1.7;}
+  .lock-box input{
+    width:100%; box-sizing:border-box;
+    padding:11px 14px; font:inherit; font-size:15px;
+    text-align:center; letter-spacing:.28em; text-indent:.28em;
+    border:1px solid var(--line); border-radius:9px;
+    background:#fdf8ee; color:var(--ink); outline:none;
+  }
+  .lock-box input:focus{border-color:var(--red); background:#fff;}
+  .lock-box button{
+    width:100%; margin-top:12px; padding:11px;
+    font-size:15px; letter-spacing:.14em; text-indent:.14em;
+  }
+  .lock-err{min-height:18px;margin-top:8px;font-size:12.5px;color:#c0342c;}
 </style>
 </head>
 <body>
+
+<div class="lock" id="lock">
+  <div class="lock-box">
+    <h2>登记汇总</h2>
+    <p>该页面仅限内部查看</p>
+    <input id="pwd" type="password" inputmode="text" autocomplete="off"
+           placeholder="请输入访问口令" maxlength="32" aria-label="访问口令">
+    <div class="lock-err" id="lockErr"></div>
+    <button id="unlock">进入</button>
+  </div>
+</div>
+
 <div class="wrap">
   <h1>工享提升礼 · 登记汇总</h1>
   <p class="sub">数据实时读取自腾讯云开发数据库，打开即自动加载。</p>
@@ -366,7 +413,33 @@ window.LIYU_CONFIG = {
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   });
 
-  load();
+  /* ---------- 口令保护 ---------- */
+  var PASS = (window.LIYU_CONFIG && window.LIYU_CONFIG.dashPass) || 'fy2026';
+
+  (function gate() {
+    var lock = $('#lock'), inp = $('#pwd'), err = $('#lockErr');
+    if (!lock) { load(); return; }
+
+    function tryOpen() {
+      if (inp.value.trim() === PASS) {
+        lock.hidden = true;
+        try { sessionStorage.setItem('liyu_ok', '1'); } catch (e) {}
+        load();
+      } else {
+        err.textContent = '口令不正确';
+        inp.value = '';
+        inp.focus();
+      }
+    }
+
+    $('#unlock').addEventListener('click', tryOpen);
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') tryOpen(); });
+
+    var ok = false;
+    try { ok = sessionStorage.getItem('liyu_ok') === '1'; } catch (e) {}
+    if (ok) { lock.hidden = true; load(); }
+    else { inp.focus(); }
+  })();
 })();
 </script>
 </body>
