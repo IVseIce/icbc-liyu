@@ -54,7 +54,7 @@
 
   <div class="scroll">
     <table id="tbl">
-      <thead><tr><th>#</th><th>提交时间</th><th>心愿完成时间</th><th>预约提升金额（万元）</th><th>邀请员工编号</th></tr></thead>
+      <thead><tr><th>#</th><th>客户姓名</th><th>手机号</th><th>提交时间</th><th>心愿完成时间</th><th>预约提升金额（万元）</th><th>邀请员工编号</th></tr></thead>
       <tbody></tbody>
     </table>
     <div class="empty" id="empty" hidden>暂无登记数据</div>
@@ -218,6 +218,8 @@ window.LIYU_CONFIG = {
       tb.innerHTML = rows.map(function (r, i) {
         return '<tr>' +
           '<td>' + (i + 1) + '</td>' +
+          '<td>' + (r.customer_name || '—') + '</td>' +
+          '<td>' + (r.customer_phone || '—') + '</td>' +
           '<td>' + fmt(r.submitted_at) + '</td>' +
           '<td>' + (r.target_date || '') + '</td>' +
           '<td class="num">' + (r.amount_wanyuan != null ? r.amount_wanyuan : '') + '</td>' +
@@ -300,6 +302,8 @@ window.LIYU_CONFIG = {
       tb.innerHTML = rows.map(function (r, i) {
         return '<tr>' +
           '<td>' + (i + 1) + '</td>' +
+          '<td>' + (r.customer_name || '—') + '</td>' +
+          '<td>' + (r.customer_phone || '—') + '</td>' +
           '<td>' + fmt(r.submitted_at) + '</td>' +
           '<td>' + (r.target_date || '') + '</td>' +
           '<td class="num">' + (r.amount_wanyuan != null ? r.amount_wanyuan : '') + '</td>' +
@@ -342,9 +346,10 @@ window.LIYU_CONFIG = {
   $('#load').addEventListener('click', load);
 
   $('#csv').addEventListener('click', function () {
-    var head = ['序号', '提交时间', '心愿完成时间', '预约提升金额(万元)', '邀请员工编号'];
+    var head = ['序号', '客户姓名', '手机号', '提交时间', '心愿完成时间', '预约提升金额(万元)', '邀请员工编号'];
     var data = rows.map(function (r, i) {
-      return [i + 1, fmt(r.submitted_at), r.target_date, r.amount_wanyuan, r.employee || ''];
+      return [i + 1, r.customer_name || '', r.customer_phone || '', fmt(r.submitted_at),
+              r.target_date, r.amount_wanyuan, r.employee || ''];
     });
     var csv = '\ufeff' + [head].concat(data).map(function (r) {
       return r.map(function (c) {
