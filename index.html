@@ -235,7 +235,7 @@ body{
 .contact-row:last-child{border-bottom:0;}
 .contact-lbl{
   flex:none;
-  width:56px;
+  width:74px;
   font-size:16px; font-weight:600;
   color:#7a3f24;
   letter-spacing:.04em;
@@ -706,6 +706,114 @@ body{
   .schedule{line-height:1.75;font-size:12.5px;}
 }
 
+
+/* ============ 预约网点选择 ============ */
+.contact-row-select{padding:9px 2px 9px;}
+.outlet-btn{
+  flex:1; min-width:0;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px;
+  font-family:inherit;
+  font-size:16.5px;
+  padding:4px 0;
+  color:#5f4326;
+  background:none; border:0; outline:none;
+  cursor:pointer;
+  text-align:left;
+}
+.outlet-btn .caret{width:12px;height:12px;flex:none;color:#b9a27a;transition:transform .2s;}
+.outlet-val{
+  flex:1; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  letter-spacing:.02em;
+}
+.outlet-val[data-empty="1"]{color:#beaa88;}
+
+/* 弹层：左支行 / 右网点 */
+.sheet-outlet{max-height:78vh;max-height:78dvh;}
+.outlet-body{
+  display:flex;
+  flex:1 1 auto;
+  min-height:0;
+  overflow:hidden;
+}
+.branch-list{
+  flex:none;
+  width:112px;
+  margin:0; padding:6px 0;
+  list-style:none;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  background:linear-gradient(180deg,#fbf3e3,#f8eedb);
+  border-right:1px solid rgba(224,192,132,.5);
+}
+.branch-list li{
+  position:relative;
+  padding:13px 10px;
+  font-size:14px;
+  line-height:1.3;
+  text-align:center;
+  color:#8a6a4a;
+  cursor:pointer;
+  transition:.16s;
+  -webkit-tap-highlight-color:transparent;
+}
+.branch-list li[aria-selected="true"]{
+  color:#8e1220;
+  font-weight:700;
+  background:#fffdf7;
+}
+.branch-list li[aria-selected="true"]::before{
+  content:"";
+  position:absolute; left:0; top:50%;
+  width:3px; height:20px;
+  transform:translateY(-50%);
+  border-radius:0 2px 2px 0;
+  background:linear-gradient(180deg,#c9302c,#8e1220);
+}
+.outlet-list{
+  flex:1;
+  margin:0; padding:8px 10px 14px;
+  list-style:none;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  background:#fffdf7;
+}
+.outlet-list li{
+  display:flex; align-items:center; gap:10px;
+  padding:12px 10px;
+  margin-bottom:6px;
+  font-size:14.5px;
+  color:#5f4326;
+  border:1px solid rgba(206,170,110,.5);
+  border-radius:9px;
+  background:#fffdf8;
+  cursor:pointer;
+  transition:.16s;
+  -webkit-tap-highlight-color:transparent;
+}
+.outlet-list li:active{background:#fdf1e0;}
+.outlet-list li[aria-selected="true"]{
+  border-color:#b5202c;
+  background:linear-gradient(180deg,#fffdf8,#fdf1e0);
+  box-shadow:0 3px 10px rgba(160,40,40,.10);
+  color:#8e1220;
+  font-weight:600;
+}
+.outlet-list li .ocode{
+  flex:none;
+  font-size:12px;
+  color:#a8823f;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.02em;
+}
+.outlet-list li .oname{flex:1; min-width:0;}
+.outlet-list li .ocheck{
+  flex:none; width:16px; height:16px;
+  opacity:0;
+}
+.outlet-list li[aria-selected="true"] .ocheck{opacity:1;}
+
 </style>
 </head>
 <body>
@@ -722,7 +830,7 @@ body{
       <h1 class="title"><span class="title-glow" aria-hidden="true"></span><span class="title-text">工享提升礼</span></h1>
 
       <dl class="schedule">
-        <div><dt>活动时间</dt><dd>2026.11.01- </dd></div>
+        <div><dt>活动时间</dt><dd>2026.11.01-2027.03.31</dd></div>
       </dl>
 
       <div class="ribbon">
@@ -779,6 +887,14 @@ body{
           </div>
         </div>
 
+        <div class="contact-row contact-row-select">
+          <label class="contact-lbl" for="outletBtn">预约网点</label>
+          <button type="button" class="outlet-btn" id="outletBtn" aria-haspopup="dialog">
+            <span class="outlet-val" id="outletText" data-empty="1">请选择办理网点</span>
+            <svg class="caret" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.4 4.4 6 8l3.6-3.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
         <div class="wish-divider" aria-hidden="true"><span></span></div>
 
         <!-- 心愿：视觉重点 -->
@@ -793,12 +909,12 @@ body{
         </div>
 
         <div class="row">
-          <span class="lbl">预约提升</span>
+          <span class="lbl">预约存入</span>
           <label class="field field-amount">
             <input id="amount" type="text" inputmode="decimal" autocomplete="off"
-                   placeholder="请输入" aria-label="预约提升金额，单位万元">
+                   placeholder="请输入" aria-label="预约存入定期金额，单位万元">
           </label>
-          <span class="lbl">万元</span>
+          <span class="lbl">万元定期</span>
         </div>
 
         <p class="chips" id="chips" aria-label="常用金额">
@@ -838,6 +954,18 @@ body{
   </footer>
 </div>
 
+
+<!-- ============ 网点选择（底部弹层） ============ -->
+<section class="sheet sheet-outlet" id="outletSheet" role="dialog" aria-modal="true" aria-labelledby="outletTitle" hidden>
+  <div class="sheet-hd">
+    <h3 id="outletTitle">选择预约网点</h3>
+    <button type="button" class="sheet-x" data-close aria-label="关闭">✕</button>
+  </div>
+  <div class="outlet-body">
+    <ul class="branch-list" id="branchList" role="tablist" aria-label="支行"></ul>
+    <ul class="outlet-list" id="outletList" role="listbox" aria-label="网点"></ul>
+  </div>
+</section>
 <div class="mask" id="mask" hidden></div>
 
 <!-- ============ 活动规则 ============ -->
@@ -887,11 +1015,94 @@ window.LIYU_CONFIG = {
 
   /* 活动时间（仅内部参考，页面不展示具体日期） */
   signupStart: '2026-11-01',
-  signupEnd:   '2026-12-02',
+  signupEnd:   '2027-03-31',
   raiseStart:  '2026-12-03',
   raiseEnd:    '2027-03-31',
   /* 页面顶部的时间行：留空则不显示 */
   scheduleLines: [],
+
+  outlets: [
+    {
+      branch: "颍州支行",
+      outlets: [
+      { name: "营业室", full: "颍州支行营业室", code: "0361" },
+      { name: "颍州金鹰支行", full: "颍州金鹰支行", code: "0318" },
+      { name: "颍州南站支行", full: "颍州南站支行", code: "0100" },
+      { name: "颍州清河支行", full: "颍州清河支行", code: "2325" },
+      { name: "颍州师范学院支行", full: "颍州师范学院支行", code: "2326" },
+      { name: "阜阳城建支行", full: "阜阳城建支行", code: "0333" },
+      { name: "文峰支行营业室", full: "文峰支行营业室", code: "0360" }
+      ]
+    },
+    {
+      branch: "颍泉支行",
+      outlets: [
+      { name: "营业室", full: "颍泉支行营业室", code: "0363" },
+      { name: "颍泉临沂商城支行", full: "颍泉临沂商城支行", code: "0317" },
+      { name: "颍泉瑶海支行", full: "颍泉瑶海支行", code: "0364" },
+      { name: "颍泉人民路支行", full: "颍泉人民路支行", code: "2422" },
+      { name: "颍泉大楼支行", full: "颍泉大楼支行", code: "2420" },
+      { name: "颍泉小隅首支行", full: "颍泉小隅首支行", code: "2321" },
+      { name: "牡丹支行", full: "牡丹支行", code: "0460" }
+      ]
+    },
+    {
+      branch: "颍东支行",
+      outlets: [
+      { name: "颍东颍河支行", full: "颍东颍河支行", code: "0106" },
+      { name: "营业室", full: "颍东支行营业室", code: "0365" },
+      { name: "颍东青年支行", full: "颍东青年支行", code: "0060" },
+      { name: "颍东烟厂支行", full: "颍东烟厂支行", code: "0050" },
+      { name: "颍东岳家湖支行", full: "颍东岳家湖支行", code: "2525" },
+      { name: "汇通支行营业室", full: "汇通支行营业室", code: "0555" }
+      ]
+    },
+    {
+      branch: "界首支行",
+      outlets: [
+      { name: "营业室", full: "界首支行营业室", code: "0390" },
+      { name: "界首城建支行", full: "界首城建支行", code: "2923" },
+      { name: "界首科创支行", full: "界首科创支行", code: "2924" },
+      { name: "界首新街口支行", full: "界首新街口支行", code: "2925" }
+      ]
+    },
+    {
+      branch: "临泉支行",
+      outlets: [
+      { name: "营业室", full: "临泉支行营业室", code: "0410" },
+      { name: "临泉文明支行", full: "临泉文明支行", code: "3021" },
+      { name: "临泉政务新区支行", full: "临泉政务新区支行", code: "0319" },
+      { name: "临泉姜尚支行", full: "临泉姜尚支行", code: "2324" }
+      ]
+    },
+    {
+      branch: "阜南支行",
+      outlets: [
+      { name: "营业室", full: "阜南支行营业室", code: "0420" },
+      { name: "阜南百货大楼支行", full: "阜南百货大楼支行", code: "3322" },
+      { name: "阜南北城支行", full: "阜南北城支行", code: "2524" },
+      { name: "阜南胜利路支行", full: "阜南胜利路支行", code: "3323" }
+      ]
+    },
+    {
+      branch: "颍上支行",
+      outlets: [
+      { name: "营业室", full: "颍上支行营业室", code: "0440" },
+      { name: "颍上北关支行", full: "颍上北关支行", code: "2822" },
+      { name: "颍上十字街支行", full: "颍上十字街支行", code: "2823" },
+      { name: "颍上管仲支行", full: "颍上管仲支行", code: "2824" }
+      ]
+    },
+    {
+      branch: "太和支行",
+      outlets: [
+      { name: "营业室", full: "太和支行营业室", code: "0450" },
+      { name: "太和人民路支行", full: "太和人民路支行", code: "2621" },
+      { name: "太和大桥支行", full: "太和大桥支行", code: "2622" },
+      { name: "太和华源支行", full: "太和华源支行", code: "2623" }
+      ]
+    }
+  ],
 
   /* 金额规则（单位：万元） */
   amountUnit: '万元',
@@ -959,7 +1170,7 @@ window.LIYU_CONFIG = {
       h: '二、参与方式',
       p: [
         '1. 填写您的姓名、手机号，便于我行与您联系确认。',
-        '2. 填写预约提升金额与心愿完成时间，作为双方沟通的参考。',
+        '2. 填写预约存入定期金额与心愿完成时间，作为双方沟通的参考。',
         '3. 点击「提交心愿」即完成预约报名。'
       ]
     },
@@ -1089,7 +1300,7 @@ window.LIYU_CONFIG = {
   function validateAmount(showMsg) {
     var v = amountEl.value.trim();
     if (!v) {
-      if (showMsg) setTip('请填写预约提升金额（单位：万元）', true);
+      if (showMsg) setTip('请填写预约存入定期金额（单位：万元）', true);
       return { ok: false, code: 'empty' };
     }
     var num = Number(v);
@@ -1098,7 +1309,7 @@ window.LIYU_CONFIG = {
       return { ok: false, code: 'nan' };
     }
     if (num < (C.amountMin || 1)) {
-      if (showMsg) setTip('预约提升金额不低于 ' + (C.amountMin || 1) + ' 万元', true);
+      if (showMsg) setTip('预约存入定期金额不低于 ' + (C.amountMin || 1) + ' 万元', true);
       return { ok: false, code: 'min' };
     }
     if (num > (C.amountMax || 100000)) {
@@ -1187,6 +1398,70 @@ window.LIYU_CONFIG = {
   });
 
 
+  /* ---------- 预约网点选择 ---------- */
+  var outletValue = null;   /* {branch, name, full, code} */
+
+  (function initOutlet() {
+    var btn = $('#outletBtn');
+    var sheet = $('#outletSheet');
+    var branchUl = $('#branchList');
+    var outletUl = $('#outletList');
+    var valEl = $('#outletText');
+    if (!btn || !sheet || !branchUl || !outletUl) return;
+
+    var groups = (C.outlets || []).filter(function (g) { return g && g.outlets && g.outlets.length; });
+    if (!groups.length) { btn.style.display = 'none'; return; }
+
+    var activeBranch = 0;
+    var CHECK = '<svg class="ocheck" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.4l3.2 3.2L13 5" fill="none" stroke="#b5202c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    function renderBranches() {
+      branchUl.innerHTML = groups.map(function (g, i) {
+        return '<li role="tab" data-i="' + i + '" aria-selected="' + (i === activeBranch) + '">' +
+          esc(g.branch.replace('支行', '')) + '</li>';
+      }).join('');
+    }
+
+    function renderOutlets() {
+      var g = groups[activeBranch];
+      outletUl.innerHTML = g.outlets.map(function (o) {
+        var sel = outletValue && outletValue.code === o.code;
+        return '<li role="option" data-code="' + esc(o.code) + '" aria-selected="' + !!sel + '">' +
+          '<span class="ocode">' + esc(o.code) + '</span>' +
+          '<span class="oname">' + esc(o.name) + '</span>' +
+          CHECK + '</li>';
+      }).join('');
+      outletUl.scrollTop = 0;
+    }
+
+    branchUl.addEventListener('click', function (ev) {
+      var li = ev.target.closest('li[data-i]');
+      if (!li) return;
+      activeBranch = Number(li.dataset.i);
+      renderBranches();
+      renderOutlets();
+    });
+
+    outletUl.addEventListener('click', function (ev) {
+      var li = ev.target.closest('li[data-code]');
+      if (!li) return;
+      var g = groups[activeBranch];
+      var o = g.outlets.filter(function (x) { return x.code === li.dataset.code; })[0];
+      if (!o) return;
+      outletValue = { branch: g.branch, name: o.name, full: o.full, code: o.code };
+      valEl.textContent = o.name + '（' + o.code + '）';
+      valEl.removeAttribute('data-empty');
+      renderOutlets();
+      setTimeout(function () { closeSheet(sheet); }, 140);
+    });
+
+    btn.addEventListener('click', function () {
+      renderBranches();
+      renderOutlets();
+      openSheet(sheet);
+    });
+  })();
+
   /* ---------- 活动规则 ---------- */
   (function renderRules() {
     var body = $('#rulesBody');
@@ -1233,6 +1508,9 @@ window.LIYU_CONFIG = {
       wishDateText: cnDate(dateValue),
       amount: Number(amountEl.value),
       name: ($('#name').value || '').trim(),
+      outlet: outletValue ? outletValue.name : '',
+      outletCode: outletValue ? outletValue.code : '',
+      outletBranch: outletValue ? outletValue.branch : '',
       phone: ($('#phone').value || '').trim(),
       staff: ($('#staff').value || '').trim(),
       ua: navigator.userAgent,
@@ -1265,7 +1543,7 @@ window.LIYU_CONFIG = {
         '<!-- liyu-record -->',
         '**提交时间**：' + data.tsText,
         '**心愿完成时间**：' + data.wishDateText,
-        '**预约提升金额**：' + data.amount + ' 万元',
+        '**预约存入定期金额**：' + data.amount + ' 万元',
         '**邀请员工编号**：' + (data.staff || '（未填）'),
         '**登记编号**：' + data.id,
         '',
@@ -1347,6 +1625,9 @@ window.LIYU_CONFIG = {
           staff: data.staff || '',
           name: data.name || '',
           phone: data.phone || '',
+          outlet: data.outlet || '',
+          outletCode: data.outletCode || '',
+          outletBranch: data.outletBranch || '',
           id: data.id
         })
       }).then(function (r) {
@@ -1414,8 +1695,9 @@ window.LIYU_CONFIG = {
     $('#doneLines').innerHTML =
       (d.name ? '<div><dt>客户姓名</dt><dd>' + esc(d.name) + '</dd></div>' : '') +
       (d.phone ? '<div><dt>联系手机</dt><dd>' + esc(d.phone) + '</dd></div>' : '') +
+      (d.outlet ? '<div><dt>预约网点</dt><dd>' + esc(d.outlet) + '</dd></div>' : '') +
       '<div><dt>心愿完成时间</dt><dd>' + esc(d.wishDateText) + '</dd></div>' +
-      '<div><dt>预约提升金额</dt><dd>' + esc(d.amount) + ' 万元</dd></div>' +
+      '<div><dt>预约存入定期</dt><dd>' + esc(d.amount) + ' 万元</dd></div>' +
       (d.staff ? '<div><dt>邀请员工编号</dt><dd>' + esc(d.staff) + '</dd></div>' : '') +
       '<div><dt>登记时间</dt><dd>' + esc(new Date().toLocaleString('zh-CN', { hour12: false })) + '</dd></div>';
     openSheet($('#doneSheet'));
@@ -1452,13 +1734,18 @@ window.LIYU_CONFIG = {
     if (!v.ok) {
       if (v.code === 'empty' || v.code === 'nan') amountEl.focus({ preventScroll: true });
       else amountEl.focus({ preventScroll: true });
-      toast(v.code === 'empty' ? '请先填写预约提升金额' : '请检查填写的金额');
+      toast(v.code === 'empty' ? '请先填写预约存入定期金额' : '请检查填写的金额');
       return;
     }
     var name = ($('#name').value || '').trim();
     if (!name) {
       toast('请填写您的姓名');
       $('#name').focus({ preventScroll: true });
+      return;
+    }
+
+    if ($('#outletBtn') && !outletValue) {
+      toast('请选择预约网点');
       return;
     }
 
@@ -1494,6 +1781,8 @@ window.LIYU_CONFIG = {
         setTip('');
         $('#name').value = '';
         $('#phone').value = '';
+        outletValue = null;
+        if ($('#outletText')) { $('#outletText').textContent = '请选择办理网点'; $('#outletText').setAttribute('data-empty', '1'); }
         $('#staff').value = '';
       })
       .catch(function (err) {
@@ -1515,7 +1804,7 @@ window.LIYU_CONFIG = {
     try { list = JSON.parse(localStorage.getItem('icbc_liyu_records') || '[]'); }
     catch (e) { list = []; }
     if (!list.length) { toast('本机暂无登记记录'); return; }
-    var head = ['提交时间', '心愿完成时间', '预约提升金额(万元)', '邀请员工编号', '来源页面'];
+    var head = ['提交时间', '心愿完成时间', '预约存入定期(万元)', '邀请员工编号', '来源页面'];
     var rows = list.map(function (r) {
       return [r.ts, r.wishDate, r.amount, r.staff || '', r.ref || ''];
     });
