@@ -1126,17 +1126,22 @@ window.LIYU_CONFIG = {
   prizeText:  '预约成功到店兑现即有机会领取精美礼品',
 
   /* 提交去向
-     'cloudbase' = 提交到腾讯云开发 CloudBase（国内 0.2s，推荐）
+     'gateway'   = 提交到云函数中转（uniCloud / CloudBase 都走这个）
+     'cloudbase' = 直连腾讯云开发 CloudBase 数据库
      'github'    = 提交到 GitHub Issues
      'local'     = 只存本机浏览器
      无论哪种模式，都会同时在本机留档一份，绝不丢数据              */
   mode: 'gateway',
 
-  /* 腾讯云开发配置
+  /* 中转网关：uniCloud 云函数 URL 化地址（当前分支使用）
+     前端不持有任何密钥，只往这个地址 POST JSON。
+     切换到腾讯云 CloudBase 时，换回下面的地址即可：
+     https://wealth-wish-demo-d2e0b525d4b1cd8-1528378641.ap-shanghai.app.tcloudbase.com/submit */
+  gateway: 'https://env-00jy72osv1xq.dev-hz.cloudbasefunction.cn/submit',
+
+  /* 腾讯云开发配置（本分支不使用，保留以备切回）
      这些值都是「前端公开凭证」，CloudBase 设计上就允许放在网页里。
      真正的安全边界是数据库的 RLS 策略：本表只开放「插入」，不开放「读取」。 */
-  /* 中转网关（云函数），前端不持有任何密钥 */
-  gateway: 'https://wealth-wish-demo-d2e0b525d4b1cd8-1528378641.ap-shanghai.app.tcloudbase.com/submit',
 
   cloudbase: {
     envId: 'wealth-wish-demo-d2e0b525d4b1cd8',
@@ -1627,9 +1632,11 @@ window.LIYU_CONFIG = {
     }
 
     if (mode === 'gateway' && C.gateway) {
+      /* 不设 Content-Type：fetch 对字符串 body 默认发 text/plain，属“简单请求”，
+         不会触发 preflight。uniCloud 的 HTTP 网关 OPTIONS 响应不带 CORS 头，
+         一旦触发 preflight 浏览器就会判失败；云函数按字符串读 body，text/plain 一样能解析。 */
       return fetch(C.gateway, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: data.amount,
           wishDate: data.wishDate,
